@@ -4,15 +4,17 @@ t = 0.01;
 h = 5;
 k = 0.12;
 
-dx = 0.1;
-dy = 0.1;
+dx = 0.05;
+dy = 0.05;
 T_inf = 20 + 273;
 
-rec = ones(5,7);
+rec = ones(5*2,7*2);
 tri = [1,1,1,1;1,1,1,0;1,1,0,0;1,0,0,0];
+tri = [1,1,1,1,1,1,1,1;1,1,1,1,1,1,1,0;1,1,1,1,1,1,0,0;1,1,1,1,1,0,0,0;1,1,1,1,0,0,0,0;1,1,1,0,0,0,0,0;1,1,0,0,0,0,0,0;1,0,0,0,0,0,0,0];
 
-map = zeros(7,13);
-map(2:end - 1,2:8) = rec;
+
+map = zeros(7*2,13*2);
+map(2:end - 1,2:8*2) = rec;
 map(2:5,9:12) = tri
 
 
@@ -60,19 +62,18 @@ for j = 2:1:height(map) - 1
             
         
             if (map(j,i + 1) == 0 && pos > 11)  % adds eq for nodes on right slope
-                c(pos) = sqrt(2) * c(1);
-                %c(pos) = -1 * sqrt(2) * h * dx * T_inf;
+                c(pos) = -1 * sqrt(2) * h * dx * T_inf;
                 mat(pos,1:end) = zeros(1, length(mat));
-                mat(pos, pos) = (2 * k) - (h * sqrt(2) * dx);
+                mat(pos, pos) = -1 * sqrt(2) * h * dx;
                 mat(pos, pos - 1) = 1 * k;
                 mat(pos, pos - rowl - 1) = -1 * k;
             end
             
             if (pos == 11) % adds eq for node on right, top of slope
-                c(pos) = -1 * h * ((1+sqrt(2)) / 2) * dy * T_inf
+                c(pos) = h * ((1+sqrt(2)) / 2) *dx * T_inf
                 mat(pos,1:end) = zeros(1, length(mat));
-                mat(pos,pos) =  k - (h * dy * ((1+sqrt(2)) / 2));
-                mat(pos,pos - 1) = -1 * k;
+                mat(pos,pos) = -1 * ( k + h * ((1+sqrt(2)) / 2) * dx );
+                mat(pos,pos - 1) = k;
             end
             
             if (map(j+1,i) == 0 && i < 9) % adds eq nodes at const temperature
@@ -107,13 +108,10 @@ pos = 0;
 
 c(34) = c(34) + 1; % for adding radation enegergy 
 
-modMat = [mat, c];
+modMat = [mat, c]
 modMat = rref(modMat);
 
 T = modMat(1:end, end);
-
-
-
 
 color = []; % generating test color vector
 for i = 1:1:45

@@ -1,12 +1,12 @@
 clc; close all; clear all;
 
 t = 0.01;
-h = 20;
+h = 5;
 k = 0.12;
 
 dx = 0.1;
 dy = 0.1;
-T_inf = 20;
+T_inf = 20 + 273;
 
 rec = ones(5,7);
 tri = [1,1,1,1;1,1,1,0;1,1,0,0;1,0,0,0];
@@ -17,13 +17,12 @@ map(2:5,9:12) = tri
 
 
 template = [5,11];
-mat = zeros(45,45);
+mat = zeros(45,45); 
 
-T = zeros(45,1);
 c = zeros(45,1);
 
 
-pos = 0;
+pos = 0; % current node number read like book
 rowl = 11;
 for j = 2:1:height(map) - 1
     
@@ -33,38 +32,71 @@ for j = 2:1:height(map) - 1
             pos = pos + 1;
             
             %key = j * length(rec) - ( length(rec) - i );
-            if(map(j-1,i) == 1) % adds ones for upper node
+            if(map(j-1,i) == 1) % adds ones if there is a node above
                 mat(pos,pos - rowl - 1) = 1;
             end
             
-            if(map(j+1,i) == 1)
+            if(map(j+1,i) == 1) % adds one if there is a node below
                 mat(pos,pos + rowl) = 1;
             end
             
-            if(map(j,i - 1) == 1)
+            if(map(j,i - 1) == 1) % adds one if there is a node to the left
                 mat(pos,pos - 1) = 1;
             end
             
-            if(map(j,i + 1) == 1)
+            if(map(j,i + 1) == 1) % adds one if there is a node to the right
                 mat(pos,pos + 1) = 1;
             end
             
-            if (map(j-1,i) == 0)
-                mat(pos,pos) = (h * dx / k) + 2;
-                c(pos) = (2*h*dx/k)*T_inf;
+            if (map(j-1,i) == 0) % adds const if there is no node to the above
+                mat(pos,pos) = -2*((h * dx / k) + 2);
+                c(pos) = -1*(2*h*dx/k)*T_inf;
             end
             
-            if (map(j,i - 1) == 0)
-                mat(pos,pos) = (h * dx / k) + 2;
-                c(pos) = (2*h*dx/k)*T_inf;
+            if (map(j,i - 1) == 0) % adds const if there is np node to the left
+                mat(pos,pos) = -2*((h * dx / k) + 2);
+                c(pos) = -1*(2*h*dx/k)*T_inf;
             end
             
+        
+            if (map(j,i + 1) == 0 && pos > 11)  % adds eq for nodes on right slope
+                c(pos) = sqrt(2) * c(1);
+                %c(pos) = -1 * sqrt(2) * h * dx * T_inf;
+                mat(pos,1:end) = zeros(1, length(mat));
+                mat(pos, pos) = (2 * k) - (h * sqrt(2) * dx);
+                mat(pos, pos - 1) = 1 * k;
+                mat(pos, pos - rowl - 1) = -1 * k;
+            end
+            
+            if (pos == 11) % adds eq for node on right, top of slope
+                c(pos) = c(1) + c(1) * sqrt(2);
+                %c(pos) = -1 * h * ((1+sqrt(2)) / 2) * dy * T_inf
+                mat(pos,1:end) = zeros(1, length(mat));
+                mat(pos,pos) =  k - (h * dy * ((1+sqrt(2)) / 2));
+                mat(pos,pos - 1) = -1 * k;
+            end
+            
+            if (map(j+1,i) == 0 && i < 9) % adds eq nodes at const temperature
+                mat(pos,1:end) = zeros(1, length(mat));
+                mat(pos,pos) = 1;
+                c(pos) = 303.15;
+            end
+            
+            if (pos == 1) % add eq for node one(top left)
+                mat(pos,1:end) = zeros(1, length(mat));
+                c(pos) = (-2 * h * dx / k) * T_inf;
+                mat(pos,pos) = (-2 * ( 1 + (h * dx / k)));
+                mat(pos,pos + 1) = 1;
+                mat(pos, pos + rowl) = 1;
+            end
             
             
         end
     end
-    rowl = rowl - 1;
+    rowl = rowl - 1; % decrementing rowl to keep track on number of nodes in current row
 end
+
+
 
 
 hold on
@@ -74,7 +106,17 @@ p.LineWidth = 2;
 len = 10;
 pos = 0;
 
-color = [];
+%c(34) = c(34) + 1; % for adding radation enegergy 
+
+modMat = [mat, c];
+modMat = rref(modMat);
+
+T = modMat(1:end, end);
+
+
+
+
+color = []; % generating test color vector
 for i = 1:1:45
     color = [color, i];
 end
@@ -82,7 +124,8 @@ end
 x = [];
 y = [];
 
-for i = 0:1:4
+
+for i = 0:1:4 % generating coordinate matrix to plot
     
     for j = 0:1:len
         pos = pos + 1;
@@ -94,7 +137,8 @@ for i = 0:1:4
 end
 
 
-scatter(x,y,100,color,'filled')
+scatter(x,y,420,T,'filled') %plot format stuff
+colorbar
 axis([-.1 1.1 -.1 .5])
 pbaspect([1.2 .6 1])
 xticks(0:0.1:1)
